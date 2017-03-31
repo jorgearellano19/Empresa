@@ -23,6 +23,7 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 import java.util.ArrayList;
 import java.util.Date;
@@ -33,9 +34,13 @@ public class VistaTablas extends AppCompatActivity {
     FloatingActionButton fab;
     ListView list;
     ArrayList<DetalleProducto> productos = new ArrayList<DetalleProducto>();
-    Button button;
+    ArrayList<Factura> facturas = new ArrayList<Factura>();
+    ArrayList<Cliente> clientes = new ArrayList<Cliente>();
+    ArrayList<Producto> product_uni = new ArrayList<Producto>();
     boolean flag = false;
-    @Override
+    boolean compra = false;
+    int id_edit=0,id_c=0,id_p=0;
+        @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_vista_tablas);
@@ -46,11 +51,16 @@ public class VistaTablas extends AppCompatActivity {
         conexion = new ConexionBD(this,"empresa",null,1);
         Bundle b = getIntent().getExtras();
         fab = (FloatingActionButton)findViewById(R.id.fab);
-        button = (Button)findViewById(R.id.button5);
         if(b!=null){
+            Cliente c = (Cliente) b.get("c");
+            Producto p = (Producto)b.get("p");
+            if(c!=null)
+                actualizaCliente(c.cli_id,c.cli_nombre,c.cli_direccion);
+            if(p!=null)
+                actualizaProducto(p.id,p.nombre,p.precio,p.stack);
+
             window = b.getString("window");
             if(!window.equals("compras"))
-                button.setEnabled(false);
            switch (window){
                case "clientes":
                    listClients();
@@ -61,6 +71,7 @@ public class VistaTablas extends AppCompatActivity {
                    break;
                case "compras":
                    listBuyList();
+                   compra = true;
                    //Llenar con compras por hacer
                    break;
                case "ver":
@@ -87,19 +98,23 @@ public class VistaTablas extends AppCompatActivity {
                         showNewProduct();
                         break;
                     case "ver":
-                        Intent i = new Intent(VistaTablas.this,VistaCompras.class);
+                        Intent i = new Intent(VistaTablas.this,VistaTablas.class);
+                        i.putExtra("window","compras");
                         startActivity(i);
+                        finish();
                         break;
                 }
             }
         });
 
-        button.setOnClickListener(new View.OnClickListener() {
+        fab.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
-            public void onClick(View v) {
+            public boolean onLongClick(View v) {
                 confirmaCompra();
+                return false;
             }
         });
+
 
         list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -109,7 +124,8 @@ public class VistaTablas extends AppCompatActivity {
                         SQLiteDatabase db = conexion.getReadableDatabase();
                         String sql = "SELECT P.PRO_NOMBRE,DP.CANTIDAD FROM DETALLE DP " +
                                 "INNER JOIN PRODUCTO P ON (P.PRO_ID = DP.PRO_ID) " +
-                                "INNER JOIN FACTURA F ON (F.FAC_ID = "+position+1+")";
+                                "WHERE DP.FAC_ID = "+facturas.get(position).num_fact;
+                        Log.e("Pos",position+1+"");
                         Cursor c = db.rawQuery(sql,null);
                         ArrayList<DetalleProducto> detalles = new ArrayList<DetalleProducto>();
                         while (c.moveToNext()){
@@ -130,7 +146,45 @@ public class VistaTablas extends AppCompatActivity {
             }
         });
 
+        list.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+                if(window.equals("productos"))
+                    id_p = product_uni.get(position).id;
+                if(window.equals("clientes"))
+                    id_c = clientes.get(position).cli_id;
+                return false;
+            }
+        });
+    }
 
+    private void actualizaProducto(int id, String nombre, float precio, int stack) {
+        try {
+            SQLiteDatabase db = conexion.getReadableDatabase();
+            String SQL = "UPDATE PRODUCTO SET PRO_NOMBRE = '<NOMBRE>', PRO_PRECIO = <PRECIO>, PRO_STACK = <STACK> WHERE PRO_ID = "+id;
+            SQL = SQL.replace("<NOMBRE>",nombre);
+            SQL = SQL.replace("<PRECIO>",precio+"");
+            SQL = SQL.replace("<STACK>",stack+"");
+            db.execSQL(SQL);
+            Toast.makeText(this,"Actualización realizada con éxito",Toast.LENGTH_LONG).show();
+
+        }catch (SQLiteException e){
+            Toast.makeText(this,e.getMessage(),Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void actualizaCliente(int cli_id, String cli_nombre, String cli_direccion) {
+        try {
+            SQLiteDatabase db = conexion.getReadableDatabase();
+            String SQL = "UPDATE CLIENTE SET CLI_NOMBRE = '<NOMBRE>', CLI_DIRECCION = '<DIRECCION>' WHERE CLI_ID = "+cli_id;
+            SQL = SQL.replace("<NOMBRE>",cli_nombre);
+            SQL = SQL.replace("<DIRECCION>",cli_direccion);
+            db.execSQL(SQL);
+            Toast.makeText(this,"Actualización realizada con éxito",Toast.LENGTH_LONG).show();
+
+        }catch (SQLiteException e){
+            Toast.makeText(this,e.getMessage(),Toast.LENGTH_LONG).show();
+        }
     }
 
     private void listFacturas() {
@@ -138,7 +192,7 @@ public class VistaTablas extends AppCompatActivity {
             SQLiteDatabase db = conexion.getReadableDatabase();
             String SQL = "SELECT C.CLI_NOMBRE, F.FAC_ID, F.FAC_FECHA FROM FACTURA F INNER JOIN CLIENTE C ON (C.CLI_ID = F.CLI_ID)";
             Cursor c = db.rawQuery(SQL,null);
-            ArrayList<Factura> facturas = new ArrayList<Factura>();
+            facturas = new ArrayList<Factura>();
             while(c.moveToNext()){
                 Factura temp = new Factura(c.getString(0),c.getInt(1)+"",c.getString(2));
                 facturas.add(temp);
@@ -163,7 +217,7 @@ public class VistaTablas extends AppCompatActivity {
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,R.layout.support_simple_spinner_dropdown_item,array);
         clients.setAdapter(adapter);
         clients.setPrompt("Seleccione un cliente a vender");
-        alert.setTitle("Cliente")
+        alert.setTitle("Cliente que comprará")
                 .setView(clients)
                 .setPositiveButton("Guardar", new DialogInterface.OnClickListener() {
                     @Override
@@ -210,6 +264,7 @@ public class VistaTablas extends AppCompatActivity {
                 idf = c.getString(0);
             else
                 idf = "";
+            Log.e("ID",idf+"");
 
             //Insertar detalles
             for(int i=0;i<productos.size();i++){
@@ -224,6 +279,10 @@ public class VistaTablas extends AppCompatActivity {
                 detalle = detalle.replace("<PRO_ID>",pro_id);
                 detalle = detalle.replace("<CANTIDAD>",productos.get(i).cantidad+"");
                 db.execSQL(detalle);
+
+                String SQL = "UPDATE PRODUCTO SET PRO_STACK = <RESTA> WHERE PRO_ID = "+pro_id;
+                SQL = SQL.replace("<RESTA>","(PRO_STACK - "+productos.get(i).cantidad+")");
+                db.execSQL(SQL);
             }
 
             Toast.makeText(this,"Compra registrada satisfactoriamente",Toast.LENGTH_LONG).show();
@@ -370,14 +429,14 @@ public class VistaTablas extends AppCompatActivity {
             SQLiteDatabase db = conexion.getReadableDatabase();
             String SQL = "SELECT PRO_ID,PRO_NOMBRE, PRO_PRECIO,PRO_STACK FROM PRODUCTO";
             Cursor cursor = db.rawQuery(SQL,null);
-            ArrayList<Producto> productos = new ArrayList<Producto>();
+            product_uni = new ArrayList<Producto>();
             while (cursor.moveToNext()){
                 Producto temp = new Producto(cursor.getInt(0),cursor.getString(1),cursor.getFloat(2),cursor.getInt(3));
-                productos.add(temp);
+                product_uni.add(temp);
             }
-            if(productos.size()==0)
+            if(product_uni.size()==0)
                 return;
-            ProductoAdapter adapter = new ProductoAdapter(this,productos);
+            ProductoAdapter adapter = new ProductoAdapter(this,product_uni);
             list.setAdapter(adapter);
 
         }catch (SQLiteException e){
@@ -441,7 +500,11 @@ public class VistaTablas extends AppCompatActivity {
             SQLiteDatabase db = conexion.getReadableDatabase();
             String SQL = "SELECT CLI_ID, CLI_NOMBRE,CLI_DIRECCION FROM CLIENTE";
             Cursor cursor = db.rawQuery(SQL,null);
-            ArrayList<Cliente> clientes = new ArrayList<Cliente>();
+            clientes = new ArrayList<Cliente>();
+            if(cursor.moveToFirst())
+                id_c = cursor.getInt(0);
+
+            cursor.moveToFirst();
             while (cursor.moveToNext()){
                 Cliente temp = new Cliente(cursor.getInt(0),cursor.getString(1),cursor.getString(2));
                 clientes.add(temp);
@@ -459,7 +522,7 @@ public class VistaTablas extends AppCompatActivity {
     //Menu
     public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
         super.onCreateContextMenu(menu, v, menuInfo);
-        if (v.getId()==R.id.list) {
+        if (v.getId()==R.id.list && !flag) {
             MenuInflater inflater = getMenuInflater();
             inflater.inflate(R.menu.edit_menu, menu);
         }
@@ -474,7 +537,6 @@ public class VistaTablas extends AppCompatActivity {
                 checkWindowEliminar();
                 break;
             default:
-                Toast.makeText(this,"ENTRAAAAA",Toast.LENGTH_LONG).show();
                 break;
 
         }
@@ -483,12 +545,218 @@ public class VistaTablas extends AppCompatActivity {
 
     private void checkWindowEliminar() {
         switch (window){
-            
+            case "clientes":
+                alertEliminarCliente();
+                break;
+            case "productos":
+                alertEliminarProducto();
+                //Llenar con productos
+                break;
+            case "compras":
+                alertEliminarDetalle();
+                break;
+
+        }
+    }
+
+    private void alertEliminarDetalle() {
+        AlertDialog.Builder dialog = new AlertDialog.Builder(this);
+        dialog.setTitle("Eliminar producto")
+                .setMessage("¿Está seguro de eliminar el producto de la compra?")
+                .setPositiveButton("Sí", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        eliminarDetalle();
+                        listBuyList();
+                        dialog.dismiss();
+                    }
+                })
+                .setNegativeButton("No", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.cancel();
+                    }
+                }).show();
+    }
+
+    private void eliminarDetalle() {
+        productos.remove(id_edit-1);
+    }
+
+    private void alertEliminarProducto() {
+        AlertDialog.Builder dialog = new AlertDialog.Builder(this);
+        dialog.setTitle("Eliminar producto")
+                .setMessage("¿Está seguro de eliminar el producto?")
+                .setPositiveButton("Sí", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        eliminarProducto();
+                        listProducts();
+                        dialog.dismiss();
+                    }
+                })
+                .setNegativeButton("No", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.cancel();
+                    }
+                }).show();
+    }
+
+    private void eliminarProducto() {
+        try {
+            SQLiteDatabase db = conexion.getWritableDatabase();
+            String SQL = "DELETE FROM Producto WHERE PRO_ID = "+id_p;
+            db.execSQL(SQL);
+            Toast.makeText(this,"Se eliminó con éxito",Toast.LENGTH_LONG).show();
+        }
+        catch (SQLiteException e){
+            Toast.makeText(this,e.getMessage(),Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void alertEliminarCliente() {
+        AlertDialog.Builder dialog = new AlertDialog.Builder(this);
+        dialog.setTitle("Eliminar cliente")
+                .setMessage("¿Está seguro de eliminar el cliente?")
+                .setPositiveButton("Sí", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        eliminarCliente();
+                        listClients();
+                        dialog.dismiss();
+                    }
+                })
+                .setNegativeButton("No", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.cancel();
+                    }
+                }).show();
+    }
+
+    private void eliminarCliente() {
+        try {
+            SQLiteDatabase db = conexion.getWritableDatabase();
+            String SQL = "DELETE FROM Cliente WHERE CLI_ID = "+id_c;
+            db.execSQL(SQL);
+            Toast.makeText(this,"Se eliminó con éxito",Toast.LENGTH_LONG).show();
+        }
+        catch (SQLiteException e){
+            Toast.makeText(this,e.getMessage(),Toast.LENGTH_LONG).show();
         }
     }
 
     private void checkWindowEditar(){
+        switch (window){
+            case "clientes":
+                openWindowCliente();
+                break;
+            case "productos":
+                openWindowProducto();
+                //Llenar con productos
+                break;
+            case "compras":
+                openWindowCompra();
+                break;
 
+        }
+    }
+
+    private void openWindowCliente() {
+        try {
+            SQLiteDatabase db = conexion.getReadableDatabase();
+            String sql = "SELECT CLI_NOMBRE, CLI_DIRECCION FROM CLIENTE WHERE CLI_ID = "+id_c;
+            Cursor c = db.rawQuery(sql,null);
+            if (c.moveToFirst()) {
+                Intent i = new Intent(this, VistaCliente.class);
+                Bundle b = new Bundle();
+
+                b.putInt("ID",id_edit);
+                b.putString("NOMBRE", c.getString(0));
+                b.putString("DIRECCION", c.getString(1));
+                i.putExtras(b);
+                startActivity(i);
+                finish();
+            }
+            else {
+                Toast.makeText(this,"Error imposible",Toast.LENGTH_LONG).show();
+            }
+        }catch (SQLiteException e){
+            Toast.makeText(this,e.getMessage(),Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void openWindowProducto() {
+        try {
+            SQLiteDatabase db = conexion.getReadableDatabase();
+            String sql = "SELECT PRO_NOMBRE, PRO_PRECIO, PRO_STACK FROM PRODUCTO WHERE PRO_ID = "+id_p;
+            Cursor c = db.rawQuery(sql,null);
+            if (c.moveToFirst()) {
+                Intent i = new Intent(this, VistaProductos.class);
+                Bundle b = new Bundle();
+
+                b.putInt("ID",id_edit);
+                b.putString("NOMBRE", c.getString(0));
+                b.putString("PRECIO", c.getString(1));
+                b.putString("STOCK", c.getString(2));
+                i.putExtras(b);
+                startActivity(i);
+                finish();
+            }
+            else {
+                Toast.makeText(this,"Error imposible",Toast.LENGTH_LONG).show();
+            }
+        }catch (SQLiteException e){
+            Toast.makeText(this,e.getMessage(),Toast.LENGTH_LONG).show();
+        }
+    }
+    private void openWindowCompra() {
+        try {
+
+
+            AlertDialog.Builder alertDialog = new AlertDialog.Builder(this);
+            alertDialog.setTitle("Editar producto");
+            final Spinner product = new Spinner(this);
+            final EditText cantidad = new EditText(this);
+            cantidad.setInputType(InputType.TYPE_CLASS_NUMBER);
+            ArrayList<String> array = new ArrayList<String>();
+            Cursor c = fillProducts();
+            while (c.moveToNext())
+                array.add(c.getString(0));
+
+            ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,R.layout.support_simple_spinner_dropdown_item,array);
+            product.setAdapter(adapter);
+            product.setPrompt(productos.get(id_edit-1).producto);
+
+            cantidad.setText(productos.get(id_edit-1).cantidad);
+            LinearLayout ll=new LinearLayout(this);
+            ll.setOrientation(LinearLayout.VERTICAL);
+            ll.addView(product);
+            ll.addView(cantidad);
+            alertDialog.setView(ll);
+
+            alertDialog.setCancelable(false);
+            alertDialog.setPositiveButton("Guardar", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    productos.get(id_edit-1).producto = product.getSelectedItem().toString();
+                    productos.get(id_edit-1).cantidad = Integer.parseInt(cantidad.getText().toString());
+                    listBuyList();
+                    dialog.dismiss();
+                }
+            });
+            alertDialog.setNegativeButton("Cancelar", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    dialog.cancel();
+                }
+            });
+            AlertDialog alert = alertDialog.create();
+            alert.show();
+        }catch (SQLiteException e){
+            Toast.makeText(this,e.getMessage(),Toast.LENGTH_LONG).show();
+        }
     }
 
 }

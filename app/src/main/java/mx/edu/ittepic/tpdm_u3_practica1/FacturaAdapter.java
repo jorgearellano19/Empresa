@@ -30,13 +30,13 @@ public class FacturaAdapter  extends ArrayAdapter {
 
         //Sacar todos los datos
         TextView tv1 = (TextView)item.findViewById(R.id.listview_item_compra_nombre);
-        tv1.setText(((Factura)datos.get(position)).cliente);
+        tv1.setText("Cliente que realizó la compra: "+((Factura)datos.get(position)).cliente);
 
         TextView tv2 = (TextView)item.findViewById(R.id.listview_item_compra_numero);
-        tv2.setText(((Factura)datos.get(position)).num_fact);
+        tv2.setText("Número de factura: "+((Factura)datos.get(position)).num_fact);
 
         TextView tv3 = (TextView)item.findViewById(R.id.listview_item_compra_fecha);
-        tv3.setText(((Factura)datos.get(position)).date);
+        tv3.setText("Fecha de compra: "+((Factura)datos.get(position)).date);
 
         return item;
 

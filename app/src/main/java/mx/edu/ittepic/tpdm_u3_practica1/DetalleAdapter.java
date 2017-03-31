@@ -47,10 +47,10 @@ public class DetalleAdapter extends ArrayAdapter {
 
             //Sacar todos los datos
             TextView tv1 = (TextView) item.findViewById(R.id.listview_item_verFactura_nombre);
-            tv1.setText(((DetalleProducto) datos.get(position)).producto);
+            tv1.setText("Nombre del producto: "+((DetalleProducto) datos.get(position)).producto);
 
             TextView tv2 = (TextView) item.findViewById(R.id.listview_item_verFactura_cantidad);
-            tv2.setText(((DetalleProducto) datos.get(position)).cantidad + "");
+            tv2.setText("Cantidad a comprar: "+((DetalleProducto) datos.get(position)).cantidad + "");
 
             return item;
         }

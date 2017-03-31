@@ -30,13 +30,13 @@ public class ProductoAdapter extends ArrayAdapter {
 
         //Sacar todos los datos
         TextView tv1 = (TextView)item.findViewById(R.id.listview_item_producto_nombre);
-        tv1.setText(((Producto)datos.get(position)).nombre);
+        tv1.setText("Nombre del producto: "+((Producto)datos.get(position)).nombre);
 
         TextView tv2 = (TextView)item.findViewById(R.id.listview_item_producto_cantidad);
-        tv2.setText(((Producto)datos.get(position)).stack+"");
+        tv2.setText("Cantidad en stock: "+((Producto)datos.get(position)).stack+"");
 
         TextView tv3 = (TextView)item.findViewById(R.id.listview_item_producto_precio);
-        tv3.setText("$"+((Producto)datos.get(position)).precio+"");
+        tv3.setText("Precio unitario del producto: $"+((Producto)datos.get(position)).precio+"");
 
         return item;
 

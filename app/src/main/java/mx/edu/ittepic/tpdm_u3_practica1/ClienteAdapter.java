@@ -33,10 +33,10 @@ public class ClienteAdapter extends ArrayAdapter{
 
         //Sacar todos los datos
         TextView tv1 = (TextView)item.findViewById(R.id.listview_cliente_nombre);
-        tv1.setText(((Cliente)datos.get(position)).cli_nombre);
+        tv1.setText("Nombre del cliente: "+((Cliente)datos.get(position)).cli_nombre);
 
         TextView tv2 = (TextView)item.findViewById(R.id.listview_cliente_direccion);
-        tv2.setText(((Cliente)datos.get(position)).cli_direccion);
+        tv2.setText("Dirección: "+((Cliente)datos.get(position)).cli_direccion);
 
         return item;
 
