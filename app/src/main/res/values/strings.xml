@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">TPDM_U3_Practica1</string>
+
+    <array name="entries">
+        <item>Clientes</item>
+        <item>Productos</item>
+        <item>Hacer una compra</item>
+        <item>Visualizar compras.</item>
+    </array>
+    <string name="title_activity_vista_tablas">VistaTablas</string>
+</resources>
